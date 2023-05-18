@@ -1,0 +1,107 @@
+version: '3'
+
+services:
+
+  postgres:
+    build:
+      context: ./
+      dockerfile: postgres.dockerfile
+    expose:
+      - 5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: miningcore
+      POSTGRES_PASSWORD: miningcore
+      POSTGRES_DB: miningcore
+
+  ocash-node:
+    env_file:
+      - .env
+    build:
+      context: ./
+      dockerfile: ocash-node.dockerfile
+        # args:
+        #   - POOL_ADDRESS=${POOL_ADDRESS}
+    ports:
+      # it is important to keep Geth RPC api only exposed to localhost
+      # it will be reachable by miningcore but not open to internet which
+      # is catastrophic with --allow-insecure-unlock
+      - 127.0.0.1:8545:8545
+      - 30303:30303
+    command:
+      [
+        "--nousb",
+        "--rpc.allow-unprotected-txs",
+        "--http",
+        "--http.addr=0.0.0.0",
+        "--http.corsdomain=*",
+        "--http.api=eth,net,web3",
+        "--http.vhosts=*",
+        "--allow-insecure-unlock",
+        "--unlock=${POOL_ADDRESS}",
+        "--password=/root/.ethereum/password",
+        "--ws",
+        "--ws.addr=0.0.0.0",
+        "--ws.origins=*",
+        "--ws.api=eth,net,web3",
+        "--networkid=660868",
+        "--txlookuplimit=0",
+        "--mine",
+        "--snapshot=false",
+        "--syncmode=full",
+        "--gcmode=archive",
+        "--txpool.lifetime=3h5m0s",
+        "--miner.etherbase=${POOL_ADDRESS}",
+        # "--miner.gasprice=1000000000" ,
+        # "--miner.gaslimit=500000000000",
+        # "--override.terminaltotaldifficulty=500000000000000000",
+        # "--override.terminaltotaldifficultypassed=false",
+        "--bootnodes=enode://2f6344757e50dddcca587c7463254881bbab6307722e712000745a4d4ef57cefba7d58d27cf67106babb5817c5fdd747e9d320bc4bcbfe520aa159d1e35a82f4@207.246.78.80:30303",
+        # "--cache=8192",
+        # "--metrics",
+        # "--maxpeers=30",
+      ]
+    volumes:
+      - geth-data:/root/.ethereum
+      - ${KEYSTORE_DIR_PATH}:/root/.ethereum/keystore
+      - ${KEYSTORE_PASSWORD_FILE_PATH}:/root/.ethereum/password
+
+  miningcore:
+    # uncomment to run on macOS arm
+    # platform: linux/amd64
+    build:
+      context: ./
+      dockerfile: miningcore.dockerfile
+    ports:
+      # - 3032-3199:3032-3199
+      - 4000:4000
+      - 4073:4073
+    volumes:
+      - ./config/config.json:/config.json
+      - miningcore-data:/usr/local/miningcore-data/
+    command:
+      [
+        "-c /config.json",
+      ]
+    depends_on:
+      - ocash-node
+      - postgres
+
+  # TODO dockerfile, forked from Caddy image
+  # miningcore-ui:
+  #   build:
+  #     context: ./
+  #     dockerfile: miningcore.dockerfile
+  #   ports:
+  #     - 8080:80
+  #   environment:
+  #     - API_URL=http://localhost:4000/api
+  #     - DEFAULT_POOL=eth1
+  #   depends_on:
+  #     - miningcore
+
+volumes:
+  postgres-data:
+  geth-data:
+  miningcore-data:

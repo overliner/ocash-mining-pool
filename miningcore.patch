@@ -1,0 +1,100 @@
+diff --git a/src/Miningcore/Blockchain/Ethereum/EthereumConstants.cs b/src/Miningcore/Blockchain/Ethereum/EthereumConstants.cs
+index 79794f11..56b8b26d 100644
+--- a/src/Miningcore/Blockchain/Ethereum/EthereumConstants.cs
++++ b/src/Miningcore/Blockchain/Ethereum/EthereumConstants.cs
+@@ -57,6 +57,11 @@ public class PinkConstants
+     public const decimal BaseRewardInitial = 1.0m;
+ }
+ 
++public class OCashConstants
++{
++    public const decimal BaseRewardInitial = 2.0m;
++}
++
+ public enum EthereumNetworkType
+ {
+     Main = 1,
+@@ -65,6 +70,7 @@ public enum EthereumNetworkType
+     MainPow = 10001,
+     EtherOne = 4949,
+     Pink = 10100,
++    OCash = 660868,
+ 
+     Unknown = -1,
+ }
+@@ -77,7 +83,8 @@ public enum GethChainType
+     MainPow = 10001,
+     EtherOne = 4949,
+     Pink = 10100,
+-    
++    OCash = 660868,
++
+     Unknown = -1,
+ }
+ 
+diff --git a/src/Miningcore/Blockchain/Ethereum/EthereumPayoutHandler.cs b/src/Miningcore/Blockchain/Ethereum/EthereumPayoutHandler.cs
+index 159a3087..8f9022b3 100644
+--- a/src/Miningcore/Blockchain/Ethereum/EthereumPayoutHandler.cs
++++ b/src/Miningcore/Blockchain/Ethereum/EthereumPayoutHandler.cs
+@@ -124,7 +124,7 @@ public class EthereumPayoutHandler : PayoutHandlerBase,
+                         var gasUsed = blockHashResponse.Response.GasUsed;
+ 
+                         var burnedFee = (decimal) 0;
+-                        if(extraPoolConfig?.ChainTypeOverride == "Ethereum" || extraPoolConfig?.ChainTypeOverride == "Main" || extraPoolConfig?.ChainTypeOverride == "MainPow" || extraPoolConfig?.ChainTypeOverride == "EtherOne" || extraPoolConfig?.ChainTypeOverride == "Pink")
++                        if(extraPoolConfig?.ChainTypeOverride == "Ethereum" || extraPoolConfig?.ChainTypeOverride == "Main" || extraPoolConfig?.ChainTypeOverride == "MainPow" || extraPoolConfig?.ChainTypeOverride == "EtherOne" || extraPoolConfig?.ChainTypeOverride == "Pink" || extraPoolConfig?.ChainTypeOverride == "OCash")
+                             burnedFee = (baseGas * gasUsed / EthereumConstants.Wei);
+ 
+                         block.Hash = blockHash;
+@@ -189,9 +189,9 @@ public class EthereumPayoutHandler : PayoutHandlerBase,
+                             {
+ 
+                                 // make sure there is no other uncle from that block stored in the DB already.
+-                                // when there is more than 1 uncle mined by us within the BlockSearchOffset 
+-                                // range, the pool automatically assumes the first found block is the correct one. 
+-                                // This is not always the case, so we need to check the DB for any other 
++                                // when there is more than 1 uncle mined by us within the BlockSearchOffset
++                                // range, the pool automatically assumes the first found block is the correct one.
++                                // This is not always the case, so we need to check the DB for any other
+                                 // uncles from that block and continue searching if there any others.
+                                 // Otherwise the payouter will crash and no further blocks will be unlocked.
+                                 var duplBlock = await cf.Run(con => blockRepo.GetBlockByHeightAsync(con, poolConfig.Id, Convert.ToInt64(uncle.Height.Value)));
+@@ -337,6 +337,9 @@ public class EthereumPayoutHandler : PayoutHandlerBase,
+             case GethChainType.Callisto:
+                 return CallistoConstants.BaseRewardInitial * (CallistoConstants.TreasuryPercent / 100);
+ 
++            case GethChainType.OCash:
++               return OCashConstants.BaseRewardInitial;
++
+             default:
+                 throw new Exception("Unable to determine block reward: Unsupported chain type");
+         }
+@@ -421,7 +424,7 @@ public class EthereumPayoutHandler : PayoutHandlerBase,
+         }
+ 
+         RpcResponse<string> response;
+-        if(extraPoolConfig?.ChainTypeOverride == "Pink")
++        if(extraPoolConfig?.ChainTypeOverride == "Pink" || extraPoolConfig?.ChainTypeOverride == "OCash" )
+         {
+             var requestPink = new SendTransactionRequestPink
+             {
+@@ -430,6 +433,7 @@ public class EthereumPayoutHandler : PayoutHandlerBase,
+                 Value = amount.ToString("x").TrimStart('0'),
+                 Gas = extraConfig.Gas
+             };
++            // logger.Info(() => $"[{LogCategory}] Sending serialized request {JsonConvert.SerializeObject(request)}");
+             response = await rpcClient.ExecuteAsync<string>(logger, EC.SendTx, ct, new[] { requestPink });
+         }
+         else {
+diff --git a/src/Miningcore/Blockchain/Ethereum/EthereumUtils.cs b/src/Miningcore/Blockchain/Ethereum/EthereumUtils.cs
+index 67bf993b..3f42cedf 100644
+--- a/src/Miningcore/Blockchain/Ethereum/EthereumUtils.cs
++++ b/src/Miningcore/Blockchain/Ethereum/EthereumUtils.cs
+@@ -28,5 +28,8 @@ public static class EthereumUtils
+ 
+         if(chainType == GethChainType.Callisto)
+             chainType = GethChainType.Callisto;
++
++        if(chainType == GethChainType.OCash)
++            chainType = GethChainType.OCash;
+     }
+ }
