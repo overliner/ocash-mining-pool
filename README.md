@@ -3,10 +3,10 @@
 > **BEWARE: You should understand how this pool setup works! It involves manipulation with
 > your pool's private key and password to it so it is crucial to configure it in a secure way.
 > Default setup provides a secure configuration but if you change things, you can end up with
-> your oCash node being open to the internet and accepting transactions from you pool's address**
+> your ōCash node being open to the internet and accepting transactions from you pool's address**
 
 This template is for setting up a simple ōCash mining pool. It uses a docker-compose to run all
-needed components, stores all persistent data in docker volumes (ocash chain, pool database, DAGs...),
+needed components, stores all persistent data in docker volumes (ōCash chain, pool database, DAGs...),
 so containers can be removed, changed, rebuilt and rerun and until you delete these volumes, no data
 is lost.
 
@@ -17,12 +17,12 @@ is lost.
 to [official Docker documentation](https://docs.docker.com/engine/install/)
 - recent git
 - enough disk space for storage of chain data and pool software database
-- machine has to have port `30303` open for oCash node P2P to works, for accessing the pools REST api
+- machine has to have port `30303` open for ōCash node P2P to works, for accessing the pools REST api
 from internet also port `4000` needs to be open (port numbers can be changed, these are for default setup)
 
 ### Components
 
-- oCash node
+- ōCash node
 - miningcore pool
 - postgresql database
 
