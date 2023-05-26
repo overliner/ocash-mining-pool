@@ -47,6 +47,7 @@ RUN \
 apk add --no-cache boost-date_time boost-system openssl
 
 RUN mkdir -p /usr/local/miningcore-data
+RUN mkdir -p /var/lib/certs
 
 # VOLUME ["/mnt/miningcore/"]
 

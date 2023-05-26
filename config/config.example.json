@@ -89,6 +89,9 @@
           "4073": {
             "name": "GPU-SMALL",
             "listenAddress": "*",
+            "tls": false,
+            "tlsPfxFile": "/var/lib/certs/cert.pfx",
+            "tlsPfxPassword": "<fill in>",
             "difficulty": 0.1,
             "varDiff": {
               "minDiff": 0.1,

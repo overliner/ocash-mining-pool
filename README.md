@@ -40,7 +40,51 @@ from internet also port `4000` needs to be open (port numbers can be changed, th
 - double check permissions on these two
 - run the containers using `docker compose up`, refer to [Docker Compose documentation](https://docs.docker.com/compose/) for usage
 
+## TLS configuration
+
+It is strongly recommended to run the pool only with TLS encryption (pool will
+serve `stratum2+ssl://` endpoint in that case).
+
+### Testing setup
+
+This setup will allow you to test the TLS setup, although it creates a testing
+CA which is not trusted by clients by default (it's root key is not in common
+CA stores)
+
+For simpliest setup with self-signed certificate, you can use for example
+[`mkcert` utility](https://github.com/FiloSottile/mkcert) (refer to you host
+system package manager how to install this tool, e.g. on Debian it would be
+`apt install mkcert`) for generating the certificate. Mind that miningcore
+needs `pkcs12` key format, so the steps would be:
+
+- *install the mkcert utility*
+- `mkcert -install`
+- `mkcert -cert-file pool-cert.pem -key-file pool-cert.key <POOL_PUBLIC_IP_ADDRESS>`
+- `openssl pkcs12 -export -out pool-cert-self-signed.pfx -inkey pool-cert.key -in pool-cert.pem` (choose a password or leave blank for no password)
+- put the path from previous step (option `-out`) to you `.env` file to key `POOL_TLS_CERT_PATH`
+- change `pool[0].ports[0].tls` to `true`
+- change `pool[0].ports[0].tlsPfxPassword` to the certifcate password
+
+Mind that this setup is solely for testing purposes - you have to advise your clients to ignore certificate validation (e.g. `SSL_NOVERIFY=1` when using `ethminer`)
+
+### Production setup
+
+Simpliest way for using proper valid certificate is having a domain you own pointed to the server IP running the pool setup. Then you can use
+Let's Encrypt for generating your keys, the common tool for this is [certbot](https://certbot.eff.org/).
+
+Steps (on Debian 10):
+
+- install certbot (`apt install certbot`)
+- generate the keys with `certbot certonly --manual --preferred-challenges dns --email <your email> --domains <your domain>`
+- as instructed, create the required TXT DNS record for you domain to pass the validation
+- convert the key to PKCS12 format using `openssl pkcs12 -export -out pool-cert.pfx -inkey /etc/letsencrypt/live/<your domain>/privkey.pem -in /etc/letsencrypt/live/<your domain>/fullchain.pem`
+the PKCS12 key is in file `pool-cert.pfx`.
+- mind that the conversion step needs to be done after each key renewal, so it's better to use [certbot hooks](https://eff-certbot.readthedocs.io/en/stable/using.html#pre-and-post-validation-hooks) to this for you
+- put path to converted `pool-cert.pfx` to your `.env`s `POOL_TLS_CERT_PATH`
+- change `pool[0].ports[0].tls` to `true`
+- change `pool[0].ports[0].tlsPfxPassword` to the certifcate password
+
+
 ## TODO
 
-- [ ] stratum TLS
 - [ ] Pool web UI

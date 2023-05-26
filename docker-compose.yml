@@ -79,6 +79,7 @@ services:
       - 4073:4073
     volumes:
       - ./config/config.json:/config.json
+      - ${POOL_TLS_CERT_PATH}:/var/lib/certs/cert.pfx:ro
       - miningcore-data:/usr/local/miningcore-data/
     command:
       [
